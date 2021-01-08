@@ -1,0 +1,164 @@
+//! Holds a list of alive entities.
+//! It also holds a list of entities that were recently killed, which allows
+//! to remove components of deleted entities at the end of a game frame.
+
+const std = @import("std");
+const Entity = @import("./Entity.zig");
+const ArrayList = std.ArrayList;
+const Allocator = std.mem.Allocator;
+const Bitset = std.packed_int_array.PackedIntArray(u1, MAX_ENTITIES);
+const expect = std.testing.expect;
+
+const MAX_ENTITIES=65535;
+
+// 2^24 entities = 16M
+
+alive: Bitset, // Stack bitset = 2MB
+generation: ArrayList(u32), // Heap generation set = 8 MB
+killed: ArrayList(Entity),
+max_id: u16 = 0,
+/// helps to know if we should directly append after
+/// max_id or if we should look through the bitset.
+has_deleted: bool = false,
+
+/// Allocates a new Entities struct.
+pub fn init(allocator: *Allocator) !@This() {
+    var gen = try ArrayList(u32).initCapacity(allocator, MAX_ENTITIES);
+    errdefer gen.deinit();
+    gen.appendNTimesAssumeCapacity(0, MAX_ENTITIES);
+
+    const killed = ArrayList(Entity).init(allocator);
+    errdefer killed.deinit();
+
+    const alive = Bitset.initAllTo(0);
+    return @This() {
+        .alive = alive,
+        .generation = gen,
+        .killed = killed,
+    };
+}
+
+/// Creates a new `Entity` and returns it.
+/// This function will not reuse the index of an entity that is still in
+/// the killed entities.
+pub fn create(self: *@This()) Entity {
+    if (!self.has_deleted) {
+        self.alive.set(self.max_id, 1);
+        self.max_id += 1;
+        return Entity{.index=self.max_id-1, .generation=self.generation.items[self.max_id-1]};
+    } else {
+        var check: u16 = 0;
+        var found = false;
+        while (!found) : (check += 1) {
+            if (self.alive.get(check) == 0) {
+                var in_killed = false;
+                // .any(fn) would reduce this by a lot, but I'm not sure if that's possible
+                // didn't find that in std.mem
+                for (self.killed.items) |k| {
+                    if (k.index == check) {
+                        in_killed = true;
+                        break;
+                    }
+                }
+                if (!in_killed) {
+                    found = true;
+                }
+            }
+        }
+        check -= 1;
+        self.alive.set(check, 1);
+        if (check >= self.max_id) {
+            self.max_id = check;
+            self.has_deleted = false;
+        }
+        return Entity{.index=check, .generation=self.generation.items[check]};
+    }
+}
+
+/// Checks if the `Entity` is still alive.
+/// Returns true if it is alive.
+/// Returns false if it has been killed.
+pub fn is_alive(self: *@This(), entity: Entity) bool {
+    return self.alive.get(entity.index) == 1 and self.generation.items[entity.index] == entity.generation;
+}
+
+/// Kill an entity.
+pub fn kill(self: *@This(), entity: Entity) !void {
+    if (self.is_alive(entity)) {
+        self.alive.set(entity.index, 0);
+        self.generation.items[entity.index] += 1;
+        try self.killed.append(entity);
+        self.has_deleted = true;
+    }
+}
+
+/// Clears the killed entity list.
+pub fn clear_killed(self: *@This()) void {
+    self.killed.items.len = 0;
+}
+
+/// Deallocates an Entities struct.
+pub fn deinit(self: *@This()) void {
+    self.generation.deinit();
+    self.killed.deinit();
+}
+
+test "Create entity" {
+    var entities = try @This().init(std.testing.allocator);
+    defer entities.deinit();
+    const entity1 = entities.create();
+    expect(entity1.index == 0);
+    expect(entity1.generation == 0);
+    expect(entities.alive.get(0) == 1);
+    expect(entities.alive.get(1) == 0);
+    const entity2 = entities.create();
+    expect(entity2.index == 1);
+    expect(entity2.generation == 0);
+    expect(entities.alive.get(0) == 1);
+    expect(entities.alive.get(1) == 1);
+}
+
+test "Kill create entity" {
+    var entities = try @This().init(std.testing.allocator);
+    defer entities.deinit();
+    const entity1 = entities.create();
+    expect(entity1.index == 0);
+    expect(entity1.generation == 0);
+    expect(entities.alive.get(0) == 1);
+    expect(entities.alive.get(1) == 0);
+    expect(!entities.has_deleted);
+    try entities.kill(entity1);
+    expect(entities.has_deleted);
+    const entity2 = entities.create();
+    expect(entity2.index == 1);
+    expect(entity2.generation == 0);
+    expect(entities.alive.get(0) == 0);
+    expect(entities.alive.get(1) == 1);
+    // This did go all the way to the end to create the entity, so has_deleted should go back to false.
+    expect(!entities.has_deleted);
+
+    entities.clear_killed();
+
+    // has_deleted is false, so we won't try to reuse index 0
+    // let's turn has_deleted back to true manually and check if we reuse index 0.
+    entities.has_deleted = true;
+
+    const entity3 = entities.create();
+    expect(entity3.index == 0);
+    expect(entity3.generation == 1);
+    expect(entities.alive.get(0) == 1);
+    expect(entities.alive.get(1) == 1);
+    expect(entities.alive.get(2) == 0);
+    expect(entities.alive.get(3) == 0);
+    // has_deleted stays to true since we didn't check until the end of the array
+    expect(entities.has_deleted);
+    const entity4 = entities.create();
+    expect(entity4.index == 2);
+    expect(entity4.generation == 0);
+    expect(entities.alive.get(0) == 1);
+    expect(entities.alive.get(1) == 1);
+    expect(entities.alive.get(2) == 1);
+    expect(entities.alive.get(3) == 0);
+    // has_deleted turns back to false
+    expect(!entities.has_deleted);
+}
