@@ -12,9 +12,12 @@ pub fn build(b: *Builder) void {
     entities_tests.setBuildMode(mode);
     var components_test = b.addTest("src/components.zig");
     components_test.setBuildMode(mode);
+    var join_test = b.addTest("src/join.zig");
+    join_test.setBuildMode(mode);
 
     const test_step = b.step("test", "Run library tests");
     test_step.dependOn(&main_tests.step);
     test_step.dependOn(&entities_tests.step);
     test_step.dependOn(&components_test.step);
+    test_step.dependOn(&join_test.step);
 }

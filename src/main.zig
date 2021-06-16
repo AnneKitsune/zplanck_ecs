@@ -14,12 +14,12 @@ test "Create Entity" {
 
 test "Access entity data" {
     const ent = Entity {.index=1, .generation=0};
-    testing.expect(ent.index == 1);
+    try testing.expect(ent.index == 1);
     const ent2 = Entity {.index=2, .generation=0};
-    testing.expect(ent2.index == 2);
-    testing.expect(ent.index == 1);
+    try testing.expect(ent2.index == 2);
+    try testing.expect(ent.index == 1);
 }
 
 test "basic add functionality" {
-    testing.expect(add(3, 7) == 10);
+    try testing.expect(add(3, 7) == 10);
 }

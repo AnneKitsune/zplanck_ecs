@@ -95,9 +95,9 @@ test "Insert Component" {
     _ = try comps.insert(e1, 1);
     _ = try comps.insert(e2, 2);
     const ret = comps.get(e1).?.*;
-    expect(ret == 1);
+    try expect(ret == 1);
     const ret2 = comps.get(e2).?.*;
-    expect(ret2 == 2);
+    try expect(ret2 == 2);
 }
 
 
@@ -119,12 +119,12 @@ test "Insert remove component" {
 
     const e1 = entities.create();
     const not_inserted = entities.create();
-    expect(!optToBool(u32, comps.remove(e1))); // no return value.
-    expect(!optToBool(u32, try comps.insert(e1, 1))); // no return value.
-    expect(optToBool(u32, comps.remove(e1))); // now a return value.
-    expect(!optToBool(u32, try comps.insert(e1, 1))); // no return value.
-    expect((try comps.insert(e1, 2)).? == 1); // a return value.
-    expect(!optToBool(u32, comps.remove(not_inserted))); // no return value.
-    expect(comps.remove(e1).? == 2); // a return value.
+    try expect(!optToBool(u32, comps.remove(e1))); // no return value.
+    try expect(!optToBool(u32, try comps.insert(e1, 1))); // no return value.
+    try expect(optToBool(u32, comps.remove(e1))); // now a return value.
+    try expect(!optToBool(u32, try comps.insert(e1, 1))); // no return value.
+    try expect((try comps.insert(e1, 2)).? == 1); // a return value.
+    try expect(!optToBool(u32, comps.remove(not_inserted))); // no return value.
+    try expect(comps.remove(e1).? == 2); // a return value.
 
 }

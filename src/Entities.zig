@@ -107,35 +107,35 @@ test "Create entity" {
     var entities = try @This().init(std.testing.allocator);
     defer entities.deinit();
     const entity1 = entities.create();
-    expect(entity1.index == 0);
-    expect(entity1.generation == 0);
-    expect(entities.alive.get(0) == 1);
-    expect(entities.alive.get(1) == 0);
+    try expect(entity1.index == 0);
+    try expect(entity1.generation == 0);
+    try expect(entities.alive.get(0) == 1);
+    try expect(entities.alive.get(1) == 0);
     const entity2 = entities.create();
-    expect(entity2.index == 1);
-    expect(entity2.generation == 0);
-    expect(entities.alive.get(0) == 1);
-    expect(entities.alive.get(1) == 1);
+    try expect(entity2.index == 1);
+    try expect(entity2.generation == 0);
+    try expect(entities.alive.get(0) == 1);
+    try expect(entities.alive.get(1) == 1);
 }
 
 test "Kill create entity" {
     var entities = try @This().init(std.testing.allocator);
     defer entities.deinit();
     const entity1 = entities.create();
-    expect(entity1.index == 0);
-    expect(entity1.generation == 0);
-    expect(entities.alive.get(0) == 1);
-    expect(entities.alive.get(1) == 0);
-    expect(!entities.has_deleted);
+    try expect(entity1.index == 0);
+    try expect(entity1.generation == 0);
+    try expect(entities.alive.get(0) == 1);
+    try expect(entities.alive.get(1) == 0);
+    try expect(!entities.has_deleted);
     try entities.kill(entity1);
-    expect(entities.has_deleted);
+    try expect(entities.has_deleted);
     const entity2 = entities.create();
-    expect(entity2.index == 1);
-    expect(entity2.generation == 0);
-    expect(entities.alive.get(0) == 0);
-    expect(entities.alive.get(1) == 1);
+    try expect(entity2.index == 1);
+    try expect(entity2.generation == 0);
+    try expect(entities.alive.get(0) == 0);
+    try expect(entities.alive.get(1) == 1);
     // This did go all the way to the end to create the entity, so has_deleted should go back to false.
-    expect(!entities.has_deleted);
+    try expect(!entities.has_deleted);
 
     entities.clear_killed();
 
@@ -144,21 +144,21 @@ test "Kill create entity" {
     entities.has_deleted = true;
 
     const entity3 = entities.create();
-    expect(entity3.index == 0);
-    expect(entity3.generation == 1);
-    expect(entities.alive.get(0) == 1);
-    expect(entities.alive.get(1) == 1);
-    expect(entities.alive.get(2) == 0);
-    expect(entities.alive.get(3) == 0);
+    try expect(entity3.index == 0);
+    try expect(entity3.generation == 1);
+    try expect(entities.alive.get(0) == 1);
+    try expect(entities.alive.get(1) == 1);
+    try expect(entities.alive.get(2) == 0);
+    try expect(entities.alive.get(3) == 0);
     // has_deleted stays to true since we didn't check until the end of the array
-    expect(entities.has_deleted);
+    try expect(entities.has_deleted);
     const entity4 = entities.create();
-    expect(entity4.index == 2);
-    expect(entity4.generation == 0);
-    expect(entities.alive.get(0) == 1);
-    expect(entities.alive.get(1) == 1);
-    expect(entities.alive.get(2) == 1);
-    expect(entities.alive.get(3) == 0);
+    try expect(entity4.index == 2);
+    try expect(entity4.generation == 0);
+    try expect(entities.alive.get(0) == 1);
+    try expect(entities.alive.get(1) == 1);
+    try expect(entities.alive.get(2) == 1);
+    try expect(entities.alive.get(3) == 0);
     // has_deleted turns back to false
-    expect(!entities.has_deleted);
+    try expect(!entities.has_deleted);
 }
