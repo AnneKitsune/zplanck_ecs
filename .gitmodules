@@ -1,0 +1,3 @@
+[submodule "deps/zig-benchmark"]
+	path = deps/zig-benchmark
+	url = git@github.com:jojolepro/zig-benchmark

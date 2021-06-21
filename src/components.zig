@@ -2,7 +2,12 @@ const std = @import("std");
 const Entity = @import("./Entity.zig");
 const ArrayList = std.ArrayList;
 const Allocator = std.mem.Allocator;
-const Bitset = std.packed_int_array.PackedIntArray(u1, MAX_ENTITIES);
+const Bitset = std.bit_set.StaticBitSet(MAX_ENTITIES);
+
+// testing
+const Entities = @import("./Entities.zig");
+const benchmark = @import("deps/zig-benchmark/bench.zig");
+
 // TODO dedup
 const MAX_ENTITIES=65535;
 const expect = std.testing.expect;
@@ -21,7 +26,8 @@ pub fn Components(comptime T: type) type {
             errdefer comps.deinit();
             comps.appendNTimesAssumeCapacity(null, 64);
         
-            const bitset = Bitset.initAllTo(0);
+            const bitset = Bitset.initEmpty();
+            //const bitset = Bitset.initAllTo(0);
             return @This() {
                 .bitset = bitset,
                 .components = comps,
@@ -32,12 +38,12 @@ pub fn Components(comptime T: type) type {
         /// Returns the previous component, if any.
         pub fn insert(self: *@This(), entity: Entity, component: T) !?T {
             var ins: ?T = component;
-            if (self.bitset.get(entity.index) == 1) {
+            if (self.bitset.isSet(entity.index)) {
                 std.mem.swap(?T, &ins, &self.components.items[entity.index]);
                 return ins;
             } else {
                 try self.allocate_enough(entity.index);
-                self.bitset.set(entity.index, 1);
+                self.bitset.set(entity.index);
                 self.components.items[entity.index] = component;
                 return null;
             }
@@ -60,7 +66,7 @@ pub fn Components(comptime T: type) type {
         /// Gets a reference to the component of `Entity`, if any.
         /// Do not store the returned pointer.
         pub fn get(self: *@This(), entity: Entity) ?*T {
-            if (self.bitset.get(entity.index) == 1) {
+            if (self.bitset.isSet(entity.index)) {
                 return &self.components.items[entity.index].?;
             } else {
                 return null;
@@ -70,8 +76,8 @@ pub fn Components(comptime T: type) type {
         /// Removes the component of `Entity`.
         /// If the entity already had this component, we return it.
         pub fn remove(self: *@This(), entity: Entity) ?T {
-            if (self.bitset.get(entity.index) == 1) {
-                self.bitset.set(entity.index, 0);
+            if (self.bitset.isSet(entity.index)) {
+                self.bitset.unset(entity.index);
                 const ret = self.components.items[entity.index];
                 self.components.items[entity.index] = null;
                 return ret;
@@ -83,8 +89,6 @@ pub fn Components(comptime T: type) type {
 }
 
 test "Insert Component" {
-    const Entities = @import("./Entities.zig");
-
     var entities = try Entities.init(std.testing.allocator);
     defer entities.deinit();
     var comps = try Components(u32).init(std.testing.allocator);
@@ -110,8 +114,6 @@ fn optToBool(comptime T: type, v: ?T) bool {
 }
 
 test "Insert remove component" {
-    const Entities = @import("./Entities.zig");
-
     var entities = try Entities.init(std.testing.allocator);
     defer entities.deinit();
     var comps = try Components(u32).init(std.testing.allocator);
@@ -127,4 +129,44 @@ test "Insert remove component" {
     try expect(!optToBool(u32, comps.remove(not_inserted))); // no return value.
     try expect(comps.remove(e1).? == 2); // a return value.
 
+}
+
+test "Benchmark component insertion" {
+    const b = struct {
+        fn bench(ctx: *benchmark.Context) void {
+            var entities = Entities.init(std.testing.allocator) catch unreachable;
+            defer entities.deinit();
+            var comps = Components(u32).init(std.testing.allocator) catch unreachable;
+            defer comps.deinit();
+
+            const e1 = entities.create();
+
+            while (ctx.runExplicitTiming()) {
+                ctx.startTimer();
+                _ = comps.insert(e1, 1) catch unreachable;
+                ctx.stopTimer();
+            }
+        }}.bench;
+    benchmark.benchmark("insert component", b);
+}
+
+// TODO move to entities file
+test "Benchmark create entity" {
+    const b = struct {
+        fn bench(ctx: *benchmark.Context) void {
+            var entities = Entities.init(std.testing.allocator) catch unreachable;
+            var count = @as(u32, 0);
+
+            while (ctx.runExplicitTiming()) {
+                ctx.startTimer();
+                _ = entities.create();
+                ctx.stopTimer();
+                if (count % 50000 == 0) {
+                    entities.deinit();
+                    entities = Entities.init(std.testing.allocator) catch unreachable;
+                }
+            }
+            entities.deinit();
+        }}.bench;
+    benchmark.benchmark("create entity", b);
 }

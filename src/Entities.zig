@@ -6,7 +6,8 @@ const std = @import("std");
 const Entity = @import("./Entity.zig");
 const ArrayList = std.ArrayList;
 const Allocator = std.mem.Allocator;
-const Bitset = std.packed_int_array.PackedIntArray(u1, MAX_ENTITIES);
+//const Bitset = std.packed_int_array.PackedIntArray(u1, MAX_ENTITIES);
+const Bitset = std.bit_set.StaticBitSet(MAX_ENTITIES);
 const expect = std.testing.expect;
 
 const MAX_ENTITIES=65535;
@@ -30,7 +31,8 @@ pub fn init(allocator: *Allocator) !@This() {
     const killed = ArrayList(Entity).init(allocator);
     errdefer killed.deinit();
 
-    const alive = Bitset.initAllTo(0);
+    //const alive = Bitset.initAllTo(0);
+    const alive = Bitset.initEmpty();
     return @This() {
         .alive = alive,
         .generation = gen,
@@ -43,14 +45,18 @@ pub fn init(allocator: *Allocator) !@This() {
 /// the killed entities.
 pub fn create(self: *@This()) Entity {
     if (!self.has_deleted) {
-        self.alive.set(self.max_id, 1);
+        self.alive.set(self.max_id);
         self.max_id += 1;
         return Entity{.index=self.max_id-1, .generation=self.generation.items[self.max_id-1]};
     } else {
         var check: u16 = 0;
         var found = false;
         while (!found) : (check += 1) {
-            if (self.alive.get(check) == 0) {
+            if (check == MAX_ENTITIES) {
+                // TODO add check to only run this when in safe compile modes.
+                @panic("Max entity count reached!");
+            }
+            if (self.alive.isSet(check)) {
                 var in_killed = false;
                 // .any(fn) would reduce this by a lot, but I'm not sure if that's possible
                 // didn't find that in std.mem
@@ -66,7 +72,7 @@ pub fn create(self: *@This()) Entity {
             }
         }
         check -= 1;
-        self.alive.set(check, 1);
+        self.alive.set(check);
         if (check >= self.max_id) {
             self.max_id = check;
             self.has_deleted = false;
@@ -79,13 +85,13 @@ pub fn create(self: *@This()) Entity {
 /// Returns true if it is alive.
 /// Returns false if it has been killed.
 pub fn is_alive(self: *@This(), entity: Entity) bool {
-    return self.alive.get(entity.index) == 1 and self.generation.items[entity.index] == entity.generation;
+    return self.alive.isSet(entity.index) and self.generation.items[entity.index] == entity.generation;
 }
 
 /// Kill an entity.
 pub fn kill(self: *@This(), entity: Entity) !void {
     if (self.is_alive(entity)) {
-        self.alive.set(entity.index, 0);
+        self.alive.unset(entity.index);
         self.generation.items[entity.index] += 1;
         try self.killed.append(entity);
         self.has_deleted = true;
@@ -109,13 +115,13 @@ test "Create entity" {
     const entity1 = entities.create();
     try expect(entity1.index == 0);
     try expect(entity1.generation == 0);
-    try expect(entities.alive.get(0) == 1);
-    try expect(entities.alive.get(1) == 0);
+    try expect(entities.alive.isSet(0));
+    try expect(!entities.alive.isSet(1));
     const entity2 = entities.create();
     try expect(entity2.index == 1);
     try expect(entity2.generation == 0);
-    try expect(entities.alive.get(0) == 1);
-    try expect(entities.alive.get(1) == 1);
+    try expect(entities.alive.isSet(0));
+    try expect(entities.alive.isSet(1));
 }
 
 test "Kill create entity" {
@@ -124,16 +130,16 @@ test "Kill create entity" {
     const entity1 = entities.create();
     try expect(entity1.index == 0);
     try expect(entity1.generation == 0);
-    try expect(entities.alive.get(0) == 1);
-    try expect(entities.alive.get(1) == 0);
+    try expect(entities.alive.isSet(0));
+    try expect(!entities.alive.isSet(1));
     try expect(!entities.has_deleted);
     try entities.kill(entity1);
     try expect(entities.has_deleted);
     const entity2 = entities.create();
     try expect(entity2.index == 1);
     try expect(entity2.generation == 0);
-    try expect(entities.alive.get(0) == 0);
-    try expect(entities.alive.get(1) == 1);
+    try expect(!entities.alive.isSet(0));
+    try expect(entities.alive.isSet(1));
     // This did go all the way to the end to create the entity, so has_deleted should go back to false.
     try expect(!entities.has_deleted);
 
@@ -146,19 +152,19 @@ test "Kill create entity" {
     const entity3 = entities.create();
     try expect(entity3.index == 0);
     try expect(entity3.generation == 1);
-    try expect(entities.alive.get(0) == 1);
-    try expect(entities.alive.get(1) == 1);
-    try expect(entities.alive.get(2) == 0);
-    try expect(entities.alive.get(3) == 0);
+    try expect(entities.alive.isSet(0));
+    try expect(entities.alive.isSet(1));
+    try expect(!entities.alive.isSet(2));
+    try expect(!entities.alive.isSet(3));
     // has_deleted stays to true since we didn't check until the end of the array
     try expect(entities.has_deleted);
     const entity4 = entities.create();
     try expect(entity4.index == 2);
     try expect(entity4.generation == 0);
-    try expect(entities.alive.get(0) == 1);
-    try expect(entities.alive.get(1) == 1);
-    try expect(entities.alive.get(2) == 1);
-    try expect(entities.alive.get(3) == 0);
+    try expect(entities.alive.isSet(0));
+    try expect(entities.alive.isSet(1));
+    try expect(entities.alive.isSet(2));
+    try expect(!entities.alive.isSet(3));
     // has_deleted turns back to false
     try expect(!entities.has_deleted);
 }
