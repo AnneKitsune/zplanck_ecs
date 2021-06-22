@@ -6,6 +6,8 @@ const Bitset = std.bit_set.StaticBitSet(MAX_ENTITIES);
 // TODO move MAX_ENTITIES to extern conf
 const MAX_ENTITIES=65535;
 
+const benchmark = @import("./deps/zig-benchmark/bench.zig");
+
 // TODO check for const vs var when iterating to get the right type of pointer.
 
 pub fn join(elems: anytype) Iter(@TypeOf(elems)) {
@@ -183,4 +185,40 @@ test "simple join" {
         try std.testing.expect(tuple.@"2".* == 3);
     }
     try std.testing.expect(count == 1);
+}
+
+test "Benchmark Join Iter Speed" {
+    const b = struct {
+        fn bench(ctx: *benchmark.Context) void {
+            const A = struct {
+                v: f32,
+            };
+            const B = struct {
+                v: f32,
+            };
+
+            var entities = Entities.init(std.testing.allocator) catch unreachable;
+            defer entities.deinit();
+            var a = Components(A).init(std.testing.allocator) catch unreachable;
+            defer a.deinit();
+            var b = Components(B).init(std.testing.allocator) catch unreachable;
+            defer b.deinit();
+
+            var count = @as(u32, 0);
+            while (count < 10000) : (count += 1) {
+                const e = entities.create();
+                _ = a.insert(e, A{.v = 1.0}) catch unreachable;
+                _ = b.insert(e, B{.v = 1.0}) catch unreachable;
+            }
+
+            const b_ptr: *const Components(B) = &b;
+
+            while (ctx.run()) {
+                var iter = join(.{&a, b_ptr});
+                while (iter.next()) |tuple| {
+                    tuple.@"0".v += tuple.@"1".v;
+                }
+            }
+        }}.bench;
+    benchmark.benchmark("join iter speed", b);
 }

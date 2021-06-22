@@ -56,7 +56,7 @@ pub fn Components(comptime T: type) type {
         /// variable. Usually, set this to `entity.index`.
         fn allocate_enough(self: *@This(), until: u32) !void {
             self.max_id = until+1;
-            const qty = @intCast(i32, until) - @intCast(i32, self.components.items.len);
+            const qty = @intCast(i32, until) - (@intCast(i32, self.components.items.len) - 1);
             if (qty > 0) {
                 try self.components.appendNTimes(null, @intCast(usize, qty));
             }
