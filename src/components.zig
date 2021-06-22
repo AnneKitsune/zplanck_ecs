@@ -65,7 +65,17 @@ pub fn Components(comptime T: type) type {
 
         /// Gets a reference to the component of `Entity`, if any.
         /// Do not store the returned pointer.
-        pub fn get(self: *@This(), entity: Entity) ?*T {
+        pub fn get(self: *const @This(), entity: Entity) ?*const T {
+            if (self.bitset.isSet(entity.index)) {
+                return &self.components.items[entity.index].?;
+            } else {
+                return null;
+            }
+        }
+
+        /// Gets a reference to the component of `Entity`, if any.
+        /// Do not store the returned pointer.
+        pub fn getMut(self: *@This(), entity: Entity) ?*T {
             if (self.bitset.isSet(entity.index)) {
                 return &self.components.items[entity.index].?;
             } else {
@@ -150,31 +160,3 @@ test "Benchmark component insertion" {
     benchmark.benchmark("insert component", b);
 }
 
-// TODO move to entities file
-test "Benchmark create entity" {
-    const b = struct {
-        fn bench(ctx: *benchmark.Context, count: u32) void {
-            while (ctx.runExplicitTiming()) {
-                var entities = Entities.init(std.testing.allocator) catch unreachable;
-                defer entities.deinit();
-
-                var i = @as(u32, 0);
-                ctx.startTimer();
-                while (i < count) : (i += 1) {
-                    _ = entities.create();
-                }
-                ctx.stopTimer();
-            }
-        }}.bench;
-    benchmark.benchmarkArgs("create Entity", b, &[_]u32{1, 100, 10000});
-}
-test "Benchmark create Entities" {
-    const b = struct {
-        fn bench(ctx: *benchmark.Context) void {
-            while (ctx.run()) {
-                var entities = Entities.init(std.testing.allocator) catch unreachable;
-                defer entities.deinit();
-            }
-        }}.bench;
-    benchmark.benchmark("create Entities", b);
-}
