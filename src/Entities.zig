@@ -113,7 +113,7 @@ pub fn deinit(this: *@This()) void {
 }
 
 /// Gets the element immutably
-pub fn get(this: *const @This(), idx: u32) Entity {
+pub fn get(this: *const @This(), idx: u32) ?Entity {
     return Entity {
         .index = idx,
         .generation = this.generation.items[idx],

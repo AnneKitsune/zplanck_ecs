@@ -19,6 +19,9 @@ pub fn Components(comptime T: type) type {
     return struct {
         bitset: Bitset,
         components: ArrayList(?T),
+        max_id: u32 = 0,
+
+        const InnerType: type = T;
 
         /// Allocates a new Components(T) struct.
         pub fn init(allocator: *Allocator) !@This() {
@@ -51,7 +54,8 @@ pub fn Components(comptime T: type) type {
 
         /// Ensures that we have the vec filled at least until the `until`
         /// variable. Usually, set this to `entity.index`.
-        fn allocate_enough(self: *@This(), until: usize) !void {
+        fn allocate_enough(self: *@This(), until: u32) !void {
+            self.max_id = until+1;
             const qty = @intCast(i32, until) - @intCast(i32, self.components.items.len);
             if (qty > 0) {
                 try self.components.appendNTimes(null, @intCast(usize, qty));
@@ -65,9 +69,12 @@ pub fn Components(comptime T: type) type {
 
         /// Gets a reference to the component of `Entity`, if any.
         /// Do not store the returned pointer.
-        pub fn get(self: *const @This(), entity: Entity) ?*const T {
-            if (self.bitset.isSet(entity.index)) {
-                return &self.components.items[entity.index].?;
+        ///
+        /// The entity argument must be a valid index.
+        /// To ensure this, take it from an `Entity` using entity.index.
+        pub fn get(self: *const @This(), entity: u32) ?*const T {
+            if (self.bitset.isSet(entity)) {
+                return &self.components.items[entity].?;
             } else {
                 return null;
             }
@@ -75,9 +82,12 @@ pub fn Components(comptime T: type) type {
 
         /// Gets a reference to the component of `Entity`, if any.
         /// Do not store the returned pointer.
-        pub fn getMut(self: *@This(), entity: Entity) ?*T {
-            if (self.bitset.isSet(entity.index)) {
-                return &self.components.items[entity.index].?;
+        ///
+        /// The entity argument must be a valid index.
+        /// To ensure this, take it from an `Entity` using entity.index.
+        pub fn getMut(self: *@This(), entity: u32) ?*T {
+            if (self.bitset.isSet(entity)) {
+                return &self.components.items[entity].?;
             } else {
                 return null;
             }
@@ -108,9 +118,9 @@ test "Insert Component" {
     const e2 = entities.create();
     _ = try comps.insert(e1, 1);
     _ = try comps.insert(e2, 2);
-    const ret = comps.get(e1).?.*;
+    const ret = comps.get(e1.index).?.*;
     try expect(ret == 1);
-    const ret2 = comps.get(e2).?.*;
+    const ret2 = comps.get(e2.index).?.*;
     try expect(ret2 == 2);
 }
 

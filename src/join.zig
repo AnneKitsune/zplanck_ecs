@@ -1,5 +1,6 @@
 const std = @import("std");
 const Components = @import("components.zig").Components;
+const Entity = @import("Entity.zig");
 const Entities = @import("Entities.zig");
 const Bitset = std.bit_set.StaticBitSet(MAX_ENTITIES);
 // TODO move MAX_ENTITIES to extern conf
@@ -50,9 +51,11 @@ pub fn Iter(comptime input_types: type) type {
 
                     inline for (std.meta.fields(@TypeOf(this.inputs))) |field| {
                         if (@typeInfo(field.field_type).Pointer.is_const) {
-                            @field(ret, field.name) = @field(this.inputs, field.name).get(this.current_position);
+                            @field(ret, field.name) = @field(this.inputs, field.name).get(this.current_position)
+                                orelse @panic("Iterated over a storage which doesn't have the requested index. The calculated iteration bitset must be wrong.");
                         } else {
-                            @field(ret, field.name) = @field(this.inputs, field.name).getMut(this.current_position);
+                            @field(ret, field.name) = @field(this.inputs, field.name).getMut(this.current_position)
+                                orelse @panic("Iterated over a storage which doesn't have the requested index. The calculated iteration bitset must be wrong.");
                         }
                     }
 
@@ -115,7 +118,7 @@ fn getInnerType(
                         .size = .One,
                         .is_const = ptr_info.Pointer.is_const,
                         .is_volatile = ptr_info.Pointer.is_volatile,
-                        .alignment = ptr_info.Pointer.alignment,
+                        .alignment = @alignOf(decl.data.Type),
                         .child = decl.data.Type,
                         .is_allowzero = ptr_info.Pointer.is_allowzero,
                         .sentinel = ptr_info.Pointer.sentinel,
@@ -156,19 +159,28 @@ test "Iter Entities" {
     try std.testing.expect(count == 4);
 }
 
-//test "simple join" {
-//    var comps1 = try Components(u32).init(std.testing.allocator);
-//    defer comps1.deinit();
-//    var comps2 = try Components(u33).init(std.testing.allocator);
-//    defer comps2.deinit();
-//    var comps3 = try Components(u34).init(std.testing.allocator);
-//    defer comps3.deinit();
-//
-//    var iter = join("1 and (2 or 3)", .{comps1, comps2, comps3});
-//    while (iter.next()) |tuple| {
-//        // tuple is of type (?*u32, ?*u33, ?*u34)
-//    }
-//    //f(tmp);
-//    //for (join_and(comps1, comps2)) |(c1, c2)| {
-//    //}
-//}
+test "simple join" {
+    var comps1 = try Components(u32).init(std.testing.allocator);
+    defer comps1.deinit();
+    var comps2 = try Components(u33).init(std.testing.allocator);
+    defer comps2.deinit();
+    var comps3 = try Components(u34).init(std.testing.allocator);
+    defer comps3.deinit();
+
+    _ = try comps1.insert(Entity{.index=0, .generation=0}, 0);
+    _ = try comps1.insert(Entity{.index=1, .generation=0}, 1);
+    _ = try comps2.insert(Entity{.index=1, .generation=0}, 2);
+    _ = try comps3.insert(Entity{.index=1, .generation=0}, 3);
+
+    const comps2_ptr: *const Components(u33) = &comps2;
+
+    var count = @as(u32, 0);
+    var iter = join(.{&comps1, comps2_ptr, &comps3});
+    while (iter.next()) |tuple| {
+        count += 1;
+        try std.testing.expect(tuple.@"0".* == 1);
+        try std.testing.expect(tuple.@"1".* == 2);
+        try std.testing.expect(tuple.@"2".* == 3);
+    }
+    try std.testing.expect(count == 1);
+}
