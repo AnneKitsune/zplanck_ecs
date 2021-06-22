@@ -153,20 +153,28 @@ test "Benchmark component insertion" {
 // TODO move to entities file
 test "Benchmark create entity" {
     const b = struct {
-        fn bench(ctx: *benchmark.Context) void {
-            var entities = Entities.init(std.testing.allocator) catch unreachable;
-            var count = @as(u32, 0);
-
+        fn bench(ctx: *benchmark.Context, count: u32) void {
             while (ctx.runExplicitTiming()) {
+                var entities = Entities.init(std.testing.allocator) catch unreachable;
+                defer entities.deinit();
+
+                var i = @as(u32, 0);
                 ctx.startTimer();
-                _ = entities.create();
-                ctx.stopTimer();
-                if (count % 50000 == 0) {
-                    entities.deinit();
-                    entities = Entities.init(std.testing.allocator) catch unreachable;
+                while (i < count) : (i += 1) {
+                    _ = entities.create();
                 }
+                ctx.stopTimer();
             }
-            entities.deinit();
         }}.bench;
-    benchmark.benchmark("create entity", b);
+    benchmark.benchmarkArgs("create Entity", b, &[_]u32{1, 100, 10000});
+}
+test "Benchmark create Entities" {
+    const b = struct {
+        fn bench(ctx: *benchmark.Context) void {
+            while (ctx.run()) {
+                var entities = Entities.init(std.testing.allocator) catch unreachable;
+                defer entities.deinit();
+            }
+        }}.bench;
+    benchmark.benchmark("create Entities", b);
 }

@@ -6,7 +6,6 @@ const std = @import("std");
 const Entity = @import("./Entity.zig");
 const ArrayList = std.ArrayList;
 const Allocator = std.mem.Allocator;
-//const Bitset = std.packed_int_array.PackedIntArray(u1, MAX_ENTITIES);
 const Bitset = std.bit_set.StaticBitSet(MAX_ENTITIES);
 const expect = std.testing.expect;
 
@@ -26,12 +25,12 @@ has_deleted: bool = false,
 pub fn init(allocator: *Allocator) !@This() {
     var gen = try ArrayList(u32).initCapacity(allocator, MAX_ENTITIES);
     errdefer gen.deinit();
+    //std.mem.set(u32, gen.items, 0);
     gen.appendNTimesAssumeCapacity(0, MAX_ENTITIES);
 
     const killed = ArrayList(Entity).init(allocator);
     errdefer killed.deinit();
 
-    //const alive = Bitset.initAllTo(0);
     const alive = Bitset.initEmpty();
     return @This() {
         .alive = alive,
@@ -45,9 +44,10 @@ pub fn init(allocator: *Allocator) !@This() {
 /// the killed entities.
 pub fn create(self: *@This()) Entity {
     if (!self.has_deleted) {
+        const i = self.max_id;
         self.alive.set(self.max_id);
         self.max_id += 1;
-        return Entity{.index=self.max_id-1, .generation=self.generation.items[self.max_id-1]};
+        return Entity{.index=i, .generation=self.generation.items[i]};
     } else {
         var check: u16 = 0;
         var found = false;
@@ -56,7 +56,7 @@ pub fn create(self: *@This()) Entity {
                 // TODO add check to only run this when in safe compile modes.
                 @panic("Max entity count reached!");
             }
-            if (self.alive.isSet(check)) {
+            if (!self.alive.isSet(check)) {
                 var in_killed = false;
                 // .any(fn) would reduce this by a lot, but I'm not sure if that's possible
                 // didn't find that in std.mem
