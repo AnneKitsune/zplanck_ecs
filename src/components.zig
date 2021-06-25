@@ -73,10 +73,14 @@ pub fn Components(comptime T: type) type {
         /// The entity argument must be a valid index.
         /// To ensure this, take it from an `Entity` using entity.index.
         pub fn get(self: *const @This(), entity: u32) ?*const T {
-            if (self.bitset.isSet(entity)) {
-                return &self.components.items[entity].?;
+            if (std.builtin.mode == .Debug or std.builtin.mode == .ReleaseSafe) {
+                if (self.bitset.isSet(entity)) {
+                    return &self.components.items[entity].?;
+                } else {
+                    return null;
+                }
             } else {
-                return null;
+                return &self.components.items[entity].?;
             }
         }
 
@@ -86,10 +90,14 @@ pub fn Components(comptime T: type) type {
         /// The entity argument must be a valid index.
         /// To ensure this, take it from an `Entity` using entity.index.
         pub fn getMut(self: *@This(), entity: u32) ?*T {
-            if (self.bitset.isSet(entity)) {
-                return &self.components.items[entity].?;
+            if (std.builtin.mode == .Debug or std.builtin.mode == .ReleaseSafe) {
+                if (self.bitset.isSet(entity)) {
+                    return &self.components.items[entity].?;
+                } else {
+                    return null;
+                }
             } else {
-                return null;
+                return &self.components.items[entity].?;
             }
         }
 
