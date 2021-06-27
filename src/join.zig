@@ -8,8 +8,6 @@ const MAX_ENTITIES=65535;
 
 const benchmark = @import("./deps/zig-benchmark/bench.zig");
 
-// TODO check for const vs var when iterating to get the right type of pointer.
-
 pub fn join(elems: anytype) Iter(@TypeOf(elems)) {
     var bitset = elems.@"0".*.bitset;
     var max_id = std.math.inf_u32;
@@ -21,11 +19,6 @@ pub fn join(elems: anytype) Iter(@TypeOf(elems)) {
         const cur_max_id = @field(elems, field.name).max_id;
         max_id = std.math.min(max_id, cur_max_id);
     }
-
-    //inline for (elems) |field, i| {
-    //    if (i != 0) {
-    //    }
-    //}
 
     return Iter(@TypeOf(elems)) {
         .bitset = bitset,
@@ -47,28 +40,6 @@ pub fn Iter(comptime input_types: type) type {
         pub fn next(this: *@This()) ?extractInnerTypes(input_types) {
             // TODO ensure that max_id is always one more than the max_id in components.
             // TODO rename max_id to "next_id"
-            //while (this.current_position < this.max_id) {
-            //    if (this.bitset.isSet(this.current_position)) {
-            //        var ret: extractInnerTypes(input_types) = undefined;
-
-            //        inline for (std.meta.fields(@TypeOf(this.inputs))) |field| {
-            //            if (@typeInfo(field.field_type).Pointer.is_const) {
-            //                @field(ret, field.name) = @field(this.inputs, field.name).get(this.current_position)
-            //                    orelse @panic("Iterated over a storage which doesn't have the requested index. The calculated iteration bitset must be wrong.");
-            //            } else {
-            //                @field(ret, field.name) = @field(this.inputs, field.name).getMut(this.current_position)
-            //                    orelse @panic("Iterated over a storage which doesn't have the requested index. The calculated iteration bitset must be wrong.");
-            //            }
-            //        }
-
-            //        // Needed in case we return, because it wouldn't increase the outer
-            //        // current_position.
-            //        this.current_position += 1;
-            //        return ret;
-            //    }
-            //    this.current_position += 1;
-            //}
-
             while (!this.bitset.isSet(this.current_position) and this.current_position < this.max_id) {
                 this.current_position += 1;
             }
@@ -109,7 +80,6 @@ fn extractInnerTypes(comptime args: type) type {
 
     comptime var types: [std.meta.fields(args).len]type = undefined;
     inline for (std.meta.fields(args)) |arg, i| {
-        // TODO extract pointer and get InnerType
         const arg_info = @typeInfo(arg.field_type);
         if (arg_info != .Pointer) {
             @compileError("Elements inside of the tuple must be pointers.");
@@ -253,8 +223,8 @@ fn benchIterSpeed(ctx: *benchmark.Context) void {
     const B = struct {
         v: f32,
     };
-    //var alloc = std.testing.allocator;
-    var alloc = std.heap.c_allocator;
+    var alloc = std.testing.allocator;
+    //var alloc = std.heap.c_allocator;
 
     var entities = Entities.init(alloc) catch unreachable;
     defer entities.deinit();
