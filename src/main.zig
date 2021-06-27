@@ -1,28 +1,9 @@
 const std = @import("std");
 const Entity = @import("./Entity.zig");
 const Entities = @import("./Entities.zig");
-const testing = std.testing;
-const alloc = testing.allocator;
+const Components = @import("./components.zig").Components;
+const Dispatcher = @import("./dispatcher.zig").Dispatcher;
+const join = @import("./join.zig").join;
 
 // Enable evented io to support async functions.
 pub const io_mode = .evented;
-
-export fn add(a: i32, b: i32) i32 {
-    return a + b;
-}
-
-test "Create Entity" {
-    const ent = Entity{ .index = 0, .generation = 0 };
-}
-
-test "Access entity data" {
-    const ent = Entity{ .index = 1, .generation = 0 };
-    try testing.expect(ent.index == 1);
-    const ent2 = Entity{ .index = 2, .generation = 0 };
-    try testing.expect(ent2.index == 2);
-    try testing.expect(ent.index == 1);
-}
-
-test "basic add functionality" {
-    try testing.expect(add(3, 7) == 10);
-}

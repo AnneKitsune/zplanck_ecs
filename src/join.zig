@@ -8,6 +8,14 @@ const MAX_ENTITIES = 65535;
 
 const benchmark = @import("./deps/zig-benchmark/bench.zig");
 
+/// Creates an iterator over the values of the provided argument pointers tuple.
+/// The argument must be a tuple containing pointers (const or not) to a struct which
+/// provides the following elements or operations:
+/// - A field bitset: std.bit_set.StaticBitSet
+/// - A function get(u32) -> ?*const T
+/// - A function getMut(u32) -> ?*T
+/// There is an exception to those rules: if the type is `Entities`, the get function will
+/// return *const Entity (not an option (?T)).
 pub fn join(elems: anytype) Iter(@TypeOf(elems)) {
     var bitset = elems.@"0".*.bitset;
     var max_id = std.math.inf_u32;
@@ -242,10 +250,10 @@ fn benchIterSpeed(ctx: *benchmark.Context) void {
     while (ctx.run()) {
         var iter = join(.{ &a, b_ptr });
         while (iter.next()) |tuple| {
-            var ptr1 = tuple.@"0";
-            const ptr2 = tuple.@"1";
-            ptr1.v += ptr2.v;
-            //tuple.@"0".*.v += tuple.@"1".*.v;
+            //var ptr1 = tuple.@"0";
+            //const ptr2 = tuple.@"1";
+            //ptr1.v += ptr2.v;
+            tuple.@"0".*.v += tuple.@"1".*.v;
         }
     }
 }

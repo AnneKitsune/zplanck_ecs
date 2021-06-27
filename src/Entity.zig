@@ -7,3 +7,17 @@
 //! (Component) and a Speed (Component).
 index: u32,
 generation: u32,
+
+const Entity = @This();
+test "Create Entity" {
+    const ent = Entity{ .index = 0, .generation = 0 };
+}
+
+test "Access entity data" {
+    const ent = Entity{ .index = 1, .generation = 0 };
+    try testing.expect(ent.index == 1);
+    const ent2 = Entity{ .index = 2, .generation = 0 };
+    try testing.expect(ent2.index == 2);
+    try testing.expect(ent.index == 1);
+}
+
