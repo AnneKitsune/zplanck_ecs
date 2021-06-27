@@ -12,13 +12,13 @@ export fn add(a: i32, b: i32) i32 {
 }
 
 test "Create Entity" {
-    const ent = Entity {.index=0, .generation=0};
+    const ent = Entity{ .index = 0, .generation = 0 };
 }
 
 test "Access entity data" {
-    const ent = Entity {.index=1, .generation=0};
+    const ent = Entity{ .index = 1, .generation = 0 };
     try testing.expect(ent.index == 1);
-    const ent2 = Entity {.index=2, .generation=0};
+    const ent2 = Entity{ .index = 2, .generation = 0 };
     try testing.expect(ent2.index == 2);
     try testing.expect(ent.index == 1);
 }

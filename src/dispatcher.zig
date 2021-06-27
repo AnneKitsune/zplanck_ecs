@@ -47,12 +47,12 @@ pub fn callSystem(world: anytype, system: anytype) !void {
     comptime const fn_info = @typeInfo(@TypeOf(system));
 
     // check that the input is a function.
-    if(fn_info != .Fn) {
+    if (fn_info != .Fn) {
         @compileError("System must be a function.");
     }
 
     // get the ptr types of all the system args.
-    comptime var types: [fn_info.Fn.args.len] type = undefined;
+    comptime var types: [fn_info.Fn.args.len]type = undefined;
     inline for (fn_info.Fn.args) |arg, i| {
         comptime const arg_type = arg.arg_type orelse @compileError("Argument has no type, are you using a generic?");
         comptime const arg_info = @typeInfo(arg_type);
@@ -65,8 +65,7 @@ pub fn callSystem(world: anytype, system: anytype) !void {
     var world_pointers: std.meta.ArgsTuple(@TypeOf(system)) = undefined;
     inline for (types) |t, i| {
         // returns a pointer to a field of type t in world.
-        const new_ptr = pointer_to_struct_type(t, world)
-            orelse @panic("Provided world misses a field of the following type that the system requires: " ++ @typeName(t));
+        const new_ptr = pointer_to_struct_type(t, world) orelse @panic("Provided world misses a field of the following type that the system requires: " ++ @typeName(t));
         world_pointers[i] = new_ptr;
     }
 
@@ -117,7 +116,7 @@ test "Basic system call from world data" {
         test_b: i32 = 0,
     };
 
-    var world = MyWorld {};
+    var world = MyWorld{};
 
     try callSystem(&world, test_system);
 
@@ -130,7 +129,7 @@ test "Basic generic system" {
         test_b: i32 = 0,
     };
 
-    var world = MyWorld {};
+    var world = MyWorld{};
 
     try callSystem(&world, TestGeneric(u32).test_generic);
 }
@@ -143,14 +142,15 @@ test "Bench medium system" {
                 test_b: i32 = 0,
             };
 
-            var world = MyWorld {};
+            var world = MyWorld{};
 
             while (ctx.runExplicitTiming()) {
                 ctx.startTimer();
                 try callSystem(&world, bench_system);
                 ctx.stopTimer();
             }
-        }}.bench;
+        }
+    }.bench;
     benchmark.benchmark("medium system", b);
 }
 
@@ -162,12 +162,11 @@ test "Dispatcher run" {
         test_b: i32 = 0,
     };
 
-    var world = MyWorld {};
+    var world = MyWorld{};
 
-    const systems = .{test_system, test_system2};
-    var dispatcher = Dispatcher(@TypeOf(systems)) {
+    const systems = .{ test_system, test_system2 };
+    var dispatcher = Dispatcher(@TypeOf(systems)){
         .systems = systems,
     };
     try dispatcher.runSeq(&world);
 }
-

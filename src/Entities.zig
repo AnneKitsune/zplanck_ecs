@@ -13,7 +13,7 @@ const benchmark = @import("./deps/zig-benchmark/bench.zig");
 const Entities = @This();
 
 // 2^24 entities = 16M
-const MAX_ENTITIES=65535;
+const MAX_ENTITIES = 65535;
 
 bitset: Bitset, // Stack bitset = 8KB
 generation: ArrayList(u32), // Heap generation list = 255KB
@@ -35,7 +35,7 @@ pub fn init(allocator: *Allocator) !@This() {
     errdefer killed.deinit();
 
     const bitset = Bitset.initEmpty();
-    return @This() {
+    return @This(){
         .bitset = bitset,
         .generation = gen,
         .killed = killed,
@@ -50,7 +50,7 @@ pub fn create(this: *@This()) Entity {
         const i = this.max_id;
         this.max_id += 1;
         this.bitset.set(i);
-        return Entity{.index=i, .generation=this.generation.items[i]};
+        return Entity{ .index = i, .generation = this.generation.items[i] };
     } else {
         var check: u16 = 0;
         var found = false;
@@ -80,7 +80,7 @@ pub fn create(this: *@This()) Entity {
             this.max_id = check;
             this.has_deleted = false;
         }
-        return Entity{.index=check, .generation=this.generation.items[check]};
+        return Entity{ .index = check, .generation = this.generation.items[check] };
     }
 }
 
@@ -114,7 +114,7 @@ pub fn deinit(this: *@This()) void {
 
 /// Gets the element immutably
 pub fn get(this: *const @This(), idx: u32) ?Entity {
-    return Entity {
+    return Entity{
         .index = idx,
         .generation = this.generation.items[idx],
     };
@@ -195,8 +195,9 @@ test "Benchmark create entity" {
                 }
                 ctx.stopTimer();
             }
-        }}.bench;
-    benchmark.benchmarkArgs("create Entity", b, &[_]u32{1, 100, 10000});
+        }
+    }.bench;
+    benchmark.benchmarkArgs("create Entity", b, &[_]u32{ 1, 100, 10000 });
 }
 test "Benchmark create Entities" {
     const b = struct {
@@ -212,6 +213,7 @@ test "Benchmark create Entities" {
                 var entities = Entities.init(alloc) catch unreachable;
                 defer entities.deinit();
             }
-        }}.bench;
+        }
+    }.bench;
     benchmark.benchmark("create Entities", b);
 }

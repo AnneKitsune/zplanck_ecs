@@ -9,7 +9,7 @@ const Entities = @import("./Entities.zig");
 const benchmark = @import("deps/zig-benchmark/bench.zig");
 
 // TODO dedup
-const MAX_ENTITIES=65535;
+const MAX_ENTITIES = 65535;
 const expect = std.testing.expect;
 
 /// Holds components of a given type indexed by `Entity`.
@@ -28,10 +28,10 @@ pub fn Components(comptime T: type) type {
             var comps = try ArrayList(?T).initCapacity(allocator, 64);
             errdefer comps.deinit();
             comps.appendNTimesAssumeCapacity(null, 64);
-        
+
             const bitset = Bitset.initEmpty();
             //const bitset = Bitset.initAllTo(0);
-            return @This() {
+            return @This(){
                 .bitset = bitset,
                 .components = comps,
             };
@@ -55,13 +55,13 @@ pub fn Components(comptime T: type) type {
         /// Ensures that we have the vec filled at least until the `until`
         /// variable. Usually, set this to `entity.index`.
         fn allocate_enough(self: *@This(), until: u32) !void {
-            self.max_id = until+1;
+            self.max_id = until + 1;
             const qty = @intCast(i32, until) - (@intCast(i32, self.components.items.len) - 1);
             if (qty > 0) {
                 try self.components.appendNTimes(null, @intCast(usize, qty));
             }
         }
-        
+
         /// Deinitializes Component(T).
         pub fn deinit(self: *@This()) void {
             self.components.deinit();
@@ -132,7 +132,6 @@ test "Insert Component" {
     try expect(ret2 == 2);
 }
 
-
 fn optToBool(comptime T: type, v: ?T) bool {
     if (v) |_| {
         return true;
@@ -174,7 +173,7 @@ test "Benchmark component insertion" {
                 _ = comps.insert(e1, 1) catch unreachable;
                 ctx.stopTimer();
             }
-        }}.bench;
+        }
+    }.bench;
     benchmark.benchmark("insert component", b);
 }
-
