@@ -4,6 +4,9 @@ const Entities = @import("./Entities.zig");
 const testing = std.testing;
 const alloc = testing.allocator;
 
+// Enable evented io to support async functions.
+pub const io_mode = .evented;
+
 export fn add(a: i32, b: i32) i32 {
     return a + b;
 }

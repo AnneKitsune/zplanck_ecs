@@ -1,12 +1,6 @@
 const std = @import("std");
-
-//const Loop = std.event.Loop;
-
 const benchmark = @import("deps/zig-benchmark/bench.zig");
 
-pub const io_mode = .evented;
-
-// testing
 const testing = std.testing;
 
 /// Holds a list of systems that can be executed sequentially or in parallel.
@@ -171,12 +165,8 @@ test "Dispatcher run" {
     var world = MyWorld {};
 
     const systems = .{test_system, test_system2};
-    //var loop: Loop = undefined;
-    //try loop.initMultiThreaded();
-    //defer loop.deinit();
     var dispatcher = Dispatcher(@TypeOf(systems)) {
         .systems = systems,
-        //.loop = loop,
     };
     try dispatcher.runSeq(&world);
 }
