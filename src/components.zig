@@ -8,8 +8,7 @@ const Bitset = std.bit_set.StaticBitSet(MAX_ENTITIES);
 const Entities = @import("./Entities.zig");
 const benchmark = @import("deps/zig-benchmark/bench.zig");
 
-// TODO dedup
-const MAX_ENTITIES = 65535;
+const MAX_ENTITIES = @import("./main.zig").MAX_ENTITIES;
 const expect = std.testing.expect;
 
 /// Holds components of a given type indexed by `Entity`.

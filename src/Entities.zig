@@ -12,8 +12,7 @@ const expect = std.testing.expect;
 const benchmark = @import("./deps/zig-benchmark/bench.zig");
 const Entities = @This();
 
-// 2^24 entities = 16M
-const MAX_ENTITIES = 65535;
+const MAX_ENTITIES = @import("./main.zig").MAX_ENTITIES;
 
 bitset: Bitset, // Stack bitset = 8KB
 generation: ArrayList(u32), // Heap generation list = 255KB

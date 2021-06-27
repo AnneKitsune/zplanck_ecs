@@ -2,9 +2,8 @@ const std = @import("std");
 const Components = @import("components.zig").Components;
 const Entity = @import("Entity.zig");
 const Entities = @import("Entities.zig");
+const MAX_ENTITIES = @import("./main.zig").MAX_ENTITIES;
 const Bitset = std.bit_set.StaticBitSet(MAX_ENTITIES);
-// TODO move MAX_ENTITIES to extern conf
-const MAX_ENTITIES = 65535;
 
 const benchmark = @import("./deps/zig-benchmark/bench.zig");
 
