@@ -45,7 +45,6 @@ pub fn Iter(comptime input_types: type) type {
         // Components(T) -> T
         // Entities -> Entity
         pub fn next(this: *@This()) ?extractInnerTypes(input_types) {
-            // TODO ensure that next_id is always one more than the next_id in components.
             while (!this.bitset.isSet(this.current_position) and this.current_position < this.next_id) {
                 this.current_position += 1;
             }
