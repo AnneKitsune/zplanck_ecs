@@ -112,6 +112,13 @@ pub fn Components(comptime T: type) type {
                 return null;
             }
         }
+
+        /// Removes dead entities from this component storage.
+        pub fn maintain(self: *@This(), entities: *const Entities) void {
+            for (entities.killed.items) |e| {
+                _ = self.remove(e);
+            }
+        }
     };
 }
 
@@ -155,6 +162,19 @@ test "Insert remove component" {
     try expect(!optToBool(u32, comps.remove(not_inserted))); // no return value.
     try expect(comps.remove(e1).? == 2); // a return value.
 
+}
+
+test "Maintain" {
+    var entities = try Entities.init(std.testing.allocator);
+    defer entities.deinit();
+    var comps = try Components(u32).init(std.testing.allocator);
+    defer comps.deinit();
+
+    const e1 = entities.create();
+    _ = try comps.insert(e1, 3);
+    try entities.kill(e1);
+    comps.maintain(&entities);
+    try expect(!optToBool(u32, comps.remove(e1))); // no return value.
 }
 
 test "Benchmark component insertion" {
