@@ -54,8 +54,8 @@ pub fn create(this: *@This()) Entity {
         var check: u16 = 0;
         var found = false;
         while (!found) : (check += 1) {
-            if (check == MAX_ENTITIES) {
-                // TODO add check to only run this when in safe compile modes.
+            comptime overflow_check = std.builtin.mode == .Debug or std.builtin.mode == .ReleaseSafe;
+            if (overflow_check && check == MAX_ENTITIES) {
                 @panic("Max entity count reached!");
             }
             if (!this.bitset.isSet(check)) {
