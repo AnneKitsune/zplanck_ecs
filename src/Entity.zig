@@ -21,4 +21,3 @@ test "Access entity data" {
     try std.testing.expect(ent2.index == 2);
     try std.testing.expect(ent.index == 1);
 }
-

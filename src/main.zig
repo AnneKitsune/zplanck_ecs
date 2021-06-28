@@ -7,7 +7,7 @@ pub const Dispatcher = @import("./dispatcher.zig").Dispatcher;
 pub const join = @import("./join.zig").join;
 
 const root = @import("root");
-pub const MAX_ENTITIES = if(@hasDecl(root, "MAX_ENTITIES")) root.MAX_ENTITIES else 65535;
+pub const MAX_ENTITIES = if (@hasDecl(root, "MAX_ENTITIES")) root.MAX_ENTITIES else 65535;
 
 // Enable evented io to support async functions.
 pub const io_mode = .evented;
