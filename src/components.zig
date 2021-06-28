@@ -6,7 +6,7 @@ const Bitset = std.bit_set.StaticBitSet(MAX_ENTITIES);
 
 // testing
 const Entities = @import("./Entities.zig");
-const benchmark = @import("deps/zig-benchmark/bench.zig");
+const benchmark = @import("benchmark");
 
 const MAX_ENTITIES = @import("./main.zig").MAX_ENTITIES;
 const expect = std.testing.expect;

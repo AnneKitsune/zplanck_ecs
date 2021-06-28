@@ -1,5 +1,5 @@
 const std = @import("std");
-const benchmark = @import("zig-benchmark");
+const benchmark = @import("benchmark");
 
 const testing = std.testing;
 
