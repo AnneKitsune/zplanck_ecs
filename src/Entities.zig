@@ -17,9 +17,9 @@ const MAX_ENTITIES = @import("./main.zig").MAX_ENTITIES;
 bitset: Bitset, // Stack bitset = 8KB
 generation: ArrayList(u32), // Heap generation list = 255KB
 killed: ArrayList(Entity),
-max_id: u16 = 0,
+next_id: u16 = 0,
 /// helps to know if we should directly append after
-/// max_id or if we should look through the bitset.
+/// next_id or if we should look through the bitset.
 has_deleted: bool = false,
 
 const InnerType: type = Entity;
@@ -46,16 +46,16 @@ pub fn init(allocator: *Allocator) !@This() {
 /// the killed entities.
 pub fn create(this: *@This()) Entity {
     if (!this.has_deleted) {
-        const i = this.max_id;
-        this.max_id += 1;
+        const i = this.next_id;
+        this.next_id += 1;
         this.bitset.set(i);
         return Entity{ .index = i, .generation = this.generation.items[i] };
     } else {
         var check: u16 = 0;
         var found = false;
         while (!found) : (check += 1) {
-            comptime overflow_check = std.builtin.mode == .Debug or std.builtin.mode == .ReleaseSafe;
-            if (overflow_check && check == MAX_ENTITIES) {
+            comptime const overflow_check = std.builtin.mode == .Debug or std.builtin.mode == .ReleaseSafe;
+            if (overflow_check and check == MAX_ENTITIES) {
                 @panic("Max entity count reached!");
             }
             if (!this.bitset.isSet(check)) {
@@ -75,8 +75,8 @@ pub fn create(this: *@This()) Entity {
         }
         check -= 1;
         this.bitset.set(check);
-        if (check >= this.max_id) {
-            this.max_id = check;
+        if (check >= this.next_id) {
+            this.next_id = check;
             this.has_deleted = false;
         }
         return Entity{ .index = check, .generation = this.generation.items[check] };

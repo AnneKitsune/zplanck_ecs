@@ -18,7 +18,7 @@ pub fn Components(comptime T: type) type {
     return struct {
         bitset: Bitset,
         components: ArrayList(?T),
-        max_id: u32 = 0,
+        next_id: u32 = 0,
 
         const InnerType: type = T;
 
@@ -54,7 +54,7 @@ pub fn Components(comptime T: type) type {
         /// Ensures that we have the vec filled at least until the `until`
         /// variable. Usually, set this to `entity.index`.
         fn allocate_enough(self: *@This(), until: u32) !void {
-            self.max_id = until + 1;
+            self.next_id = until + 1;
             const qty = @intCast(i32, until) - (@intCast(i32, self.components.items.len) - 1);
             if (qty > 0) {
                 try self.components.appendNTimes(null, @intCast(usize, qty));

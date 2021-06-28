@@ -17,20 +17,20 @@ const benchmark = @import("./deps/zig-benchmark/bench.zig");
 /// return *const Entity (not an option (?T)).
 pub fn join(elems: anytype) Iter(@TypeOf(elems)) {
     var bitset = elems.@"0".*.bitset;
-    var max_id = std.math.inf_u32;
+    var next_id = std.math.inf_u32;
 
     inline for (std.meta.fields(@TypeOf(elems))) |field| {
         if (!std.mem.eql(u8, field.name, "0")) {
             bitset.setIntersection(@field(elems, field.name).bitset);
         }
-        const cur_max_id = @field(elems, field.name).max_id;
-        max_id = std.math.min(max_id, cur_max_id);
+        const cur_next_id = @field(elems, field.name).next_id;
+        next_id = std.math.min(next_id, cur_next_id);
     }
 
     return Iter(@TypeOf(elems)){
         .bitset = bitset,
         .inputs = elems,
-        .max_id = max_id,
+        .next_id = next_id,
     };
 }
 
@@ -38,19 +38,18 @@ pub fn Iter(comptime input_types: type) type {
     return struct {
         bitset: Bitset = undefined,
         inputs: input_types,
-        max_id: u32,
+        next_id: u32,
         current_position: u32 = 0,
 
         // The tuple or anon list here should use the inner types extracted from the out_type arg.
         // Components(T) -> T
         // Entities -> Entity
         pub fn next(this: *@This()) ?extractInnerTypes(input_types) {
-            // TODO ensure that max_id is always one more than the max_id in components.
-            // TODO rename max_id to "next_id"
-            while (!this.bitset.isSet(this.current_position) and this.current_position < this.max_id) {
+            // TODO ensure that next_id is always one more than the next_id in components.
+            while (!this.bitset.isSet(this.current_position) and this.current_position < this.next_id) {
                 this.current_position += 1;
             }
-            if (this.current_position < this.max_id) {
+            if (this.current_position < this.next_id) {
                 var ret: extractInnerTypes(input_types) = undefined;
 
                 inline for (std.meta.fields(@TypeOf(this.inputs))) |field| {
