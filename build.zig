@@ -4,6 +4,11 @@ pub fn build(b: *Builder) void {
     const mode = b.standardReleaseOptions();
     const lib = b.addStaticLibrary("zplanck_ecs", "src/main.zig");
     lib.setBuildMode(mode);
+
+    const pkgs = @import("deps.zig").pkgs;
+    pkgs.addAllTo(lib);
+
+
     lib.install();
 
     var entities_tests = b.addTest("src/Entities.zig");

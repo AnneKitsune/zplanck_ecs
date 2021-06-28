@@ -9,7 +9,7 @@ const Allocator = std.mem.Allocator;
 const Bitset = std.bit_set.StaticBitSet(MAX_ENTITIES);
 const expect = std.testing.expect;
 
-const benchmark = @import("./deps/zig-benchmark/bench.zig");
+const benchmark = @import("zig-benchmark");
 const Entities = @This();
 
 const MAX_ENTITIES = @import("./main.zig").MAX_ENTITIES;

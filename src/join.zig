@@ -5,7 +5,7 @@ const Entities = @import("Entities.zig");
 const MAX_ENTITIES = @import("./main.zig").MAX_ENTITIES;
 const Bitset = std.bit_set.StaticBitSet(MAX_ENTITIES);
 
-const benchmark = @import("./deps/zig-benchmark/bench.zig");
+const benchmark = @import("zig-benchmark");
 
 /// Creates an iterator over the values of the provided argument pointers tuple.
 /// The argument must be a tuple containing pointers (const or not) to a struct which
