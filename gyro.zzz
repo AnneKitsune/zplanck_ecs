@@ -1,0 +1,11 @@
+pkgs:
+  zplanck_ecs:
+    version: 0.1.0
+    description: "Planck ECS for the Zig language! A simple yet efficient Entity-Component-System library."
+    license: Apache-2.0
+    source_url: "https://github.com/jojolepro/zplanck_ecs"
+    root: src/main.zig
+    files:
+      README.md
+      LICENSE
+      src/*.zig
