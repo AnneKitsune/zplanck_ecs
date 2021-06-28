@@ -20,6 +20,7 @@ pub fn Dispatcher(comptime T: type) type {
                 try callSystem(world, sys);
             }
         }
+
         //fn runPar(this: *@This(), world: anytype) !void {
         //    // TODO system locking mechanism
         //    inline for (this.systems) |sys| {
