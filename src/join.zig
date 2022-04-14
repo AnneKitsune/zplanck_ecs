@@ -28,11 +28,10 @@ pub fn join(elems: anytype) Iter(@TypeOf(elems)) {
         next_id = std.math.min(next_id, cur_next_id);
     }
 
-    const one_count = @intCast(u32, bitset.count());
     return Iter(@TypeOf(elems)){
         .bitset = bitset,
         .inputs = elems,
-        .one_count = one_count,
+        .next_id = next_id,
     };
 }
 
@@ -40,8 +39,7 @@ pub fn Iter(comptime input_types: type) type {
     return struct {
         bitset: Bitset = undefined,
         inputs: input_types,
-        one_count: u32,
-        one_found: u32 = 0,
+        next_id: u32,
         current_position: u32 = 0,
 
         // The tuple or anon list here should use the inner types extracted from the out_type arg.
@@ -49,28 +47,27 @@ pub fn Iter(comptime input_types: type) type {
         // Entities -> Entity
         pub fn next(this: *@This()) ?extractInnerTypes(input_types) {
             @setRuntimeSafety(false);
-            if (this.one_found >= this.one_count) {
-                return null;
-            }
-            while (!this.bitset.isSet(this.current_position)) {
+            while (!this.bitset.isSet(this.current_position) and this.current_position < this.next_id) {
                 this.current_position += 1;
             }
+            if (this.current_position < this.next_id) {
+                var ret: extractInnerTypes(input_types) = undefined;
 
-            var ret: extractInnerTypes(input_types) = undefined;
-
-            inline for (std.meta.fields(@TypeOf(this.inputs))) |field| {
-                if (@typeInfo(field.field_type).Pointer.is_const) {
-                    @field(ret, field.name) = @field(this.inputs, field.name).get(this.current_position) orelse @panic("Iterated over a storage which doesn't have the requested index. The calculated iteration bitset must be wrong.");
-                } else {
-                    @field(ret, field.name) = @field(this.inputs, field.name).getMut(this.current_position) orelse @panic("Iterated over a storage which doesn't have the requested index. The calculated iteration bitset must be wrong.");
+                inline for (std.meta.fields(@TypeOf(this.inputs))) |field| {
+                    if (@typeInfo(field.field_type).Pointer.is_const) {
+                        @field(ret, field.name) = @field(this.inputs, field.name).get(this.current_position) orelse @panic("Iterated over a storage which doesn't have the requested index. The calculated iteration bitset must be wrong.");
+                    } else {
+                        @field(ret, field.name) = @field(this.inputs, field.name).getMut(this.current_position) orelse @panic("Iterated over a storage which doesn't have the requested index. The calculated iteration bitset must be wrong.");
+                    }
                 }
-            }
 
-            // Needed in case we return, because it wouldn't increase the outer
-            // current_position.
-            this.current_position += 1;
-            this.one_found += 1;
-            return ret;
+                // Needed in case we return, because it wouldn't increase the outer
+                // current_position.
+                this.current_position += 1;
+                return ret;
+            } else {
+                return null;
+            }
         }
     };
 }
