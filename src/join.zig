@@ -46,6 +46,7 @@ pub fn Iter(comptime input_types: type) type {
         // Components(T) -> T
         // Entities -> Entity
         pub fn next(this: *@This()) ?extractInnerTypes(input_types) {
+            @setRuntimeSafety(false);
             while (!this.bitset.isSet(this.current_position) and this.current_position < this.next_id) {
                 this.current_position += 1;
             }
@@ -65,7 +66,6 @@ pub fn Iter(comptime input_types: type) type {
                 this.current_position += 1;
                 return ret;
             } else {
-                this.current_position += 1;
                 return null;
             }
         }

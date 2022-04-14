@@ -18,16 +18,16 @@ const expect = std.testing.expect;
 pub fn Components(comptime T: type) type {
     return struct {
         bitset: Bitset,
-        components: ArrayList(?T),
+        components: ArrayList(T),
         next_id: u32 = 0,
 
         const InnerType: type = T;
 
         /// Allocates a new Components(T) struct.
         pub fn init(allocator: Allocator) !@This() {
-            var comps = try ArrayList(?T).initCapacity(allocator, 64);
+            var comps = try ArrayList(T).initCapacity(allocator, 64);
             errdefer comps.deinit();
-            comps.appendNTimesAssumeCapacity(null, 64);
+            comps.appendNTimesAssumeCapacity(undefined, 64);
 
             const bitset = Bitset.initEmpty();
             //const bitset = Bitset.initAllTo(0);
@@ -39,17 +39,10 @@ pub fn Components(comptime T: type) type {
 
         /// Inserts a component for the given `Entity` index.
         /// Returns the previous component, if any.
-        pub fn insert(self: *@This(), entity: Entity, component: T) !?T {
-            var ins: ?T = component;
-            if (self.bitset.isSet(entity.index)) {
-                std.mem.swap(?T, &ins, &self.components.items[entity.index]);
-                return ins;
-            } else {
-                try self.allocate_enough(entity.index);
-                self.bitset.set(entity.index);
-                self.components.items[entity.index] = component;
-                return null;
-            }
+        pub fn insert(self: *@This(), entity: Entity, component: T) !void {
+            try self.allocate_enough(entity.index);
+            self.bitset.set(entity.index);
+            self.components.items[entity.index] = component;
         }
 
         /// Ensures that we have the vec filled at least until the `until`
@@ -58,7 +51,8 @@ pub fn Components(comptime T: type) type {
             self.next_id = until + 1;
             const qty = @intCast(i32, until) - (@intCast(i32, self.components.items.len) - 1);
             if (qty > 0) {
-                try self.components.appendNTimes(null, @intCast(usize, qty));
+                // TODO change this to just a size bump without setting any value.
+                try self.components.appendNTimes(undefined, @intCast(usize, qty));
             }
         }
 
@@ -75,12 +69,12 @@ pub fn Components(comptime T: type) type {
         pub fn get(self: *const @This(), entity: u32) ?*const T {
             if (builtin.mode == .Debug or builtin.mode == .ReleaseSafe) {
                 if (self.bitset.isSet(entity)) {
-                    return &self.components.items[entity].?;
+                    return &self.components.items[entity];
                 } else {
                     return null;
                 }
             } else {
-                return &self.components.items[entity].?;
+                return &self.components.items[entity];
             }
         }
 
@@ -92,26 +86,19 @@ pub fn Components(comptime T: type) type {
         pub fn getMut(self: *@This(), entity: u32) ?*T {
             if (builtin.mode == .Debug or builtin.mode == .ReleaseSafe) {
                 if (self.bitset.isSet(entity)) {
-                    return &self.components.items[entity].?;
+                    return &self.components.items[entity];
                 } else {
                     return null;
                 }
             } else {
-                return &self.components.items[entity].?;
+                return &self.components.items[entity];
             }
         }
 
         /// Removes the component of `Entity`.
         /// If the entity already had this component, we return it.
-        pub fn remove(self: *@This(), entity: Entity) ?T {
-            if (self.bitset.isSet(entity.index)) {
-                self.bitset.unset(entity.index);
-                const ret = self.components.items[entity.index];
-                self.components.items[entity.index] = null;
-                return ret;
-            } else {
-                return null;
-            }
+        pub fn remove(self: *@This(), entity: Entity) void {
+            self.bitset.unset(entity.index);
         }
 
         /// Removes dead entities from this component storage.
@@ -154,15 +141,8 @@ test "Insert remove component" {
     defer comps.deinit();
 
     const e1 = entities.create();
-    const not_inserted = entities.create();
-    try expect(!optToBool(u32, comps.remove(e1))); // no return value.
-    try expect(!optToBool(u32, try comps.insert(e1, 1))); // no return value.
-    try expect(optToBool(u32, comps.remove(e1))); // now a return value.
-    try expect(!optToBool(u32, try comps.insert(e1, 1))); // no return value.
-    try expect((try comps.insert(e1, 2)).? == 1); // a return value.
-    try expect(!optToBool(u32, comps.remove(not_inserted))); // no return value.
-    try expect(comps.remove(e1).? == 2); // a return value.
-
+    comps.remove(e1);
+    try comps.insert(e1, 1);
 }
 
 test "Maintain" {
@@ -175,7 +155,7 @@ test "Maintain" {
     _ = try comps.insert(e1, 3);
     try entities.kill(e1);
     comps.maintain(&entities);
-    try expect(!optToBool(u32, comps.remove(e1))); // no return value.
+    comps.remove(e1);
 }
 
 test "Benchmark component insertion" {
