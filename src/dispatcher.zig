@@ -1,5 +1,5 @@
 const std = @import("std");
-const benchmark = @import("benchmark");
+const benchmark = @import("zig_benchmark");
 
 const testing = std.testing;
 
@@ -45,7 +45,7 @@ fn callSystemUnwrap(world: anytype, system: anytype) void {
 /// Generics cannot be used. For this, create a wrapping generic struct that will create
 /// a concrete function.
 pub fn callSystem(world: anytype, system: anytype) !void {
-    comptime const fn_info = @typeInfo(@TypeOf(system));
+    const fn_info = @typeInfo(@TypeOf(system));
 
     // check that the input is a function.
     if (fn_info != .Fn) {
@@ -55,8 +55,8 @@ pub fn callSystem(world: anytype, system: anytype) !void {
     // get the ptr types of all the system args.
     comptime var types: [fn_info.Fn.args.len]type = undefined;
     inline for (fn_info.Fn.args) |arg, i| {
-        comptime const arg_type = arg.arg_type orelse @compileError("Argument has no type, are you using a generic?");
-        comptime const arg_info = @typeInfo(arg_type);
+        const arg_type = arg.arg_type orelse @compileError("Argument has no type, are you using a generic?");
+        const arg_info = @typeInfo(arg_type);
         if (arg_info != .Pointer) {
             @compileError("System arguments must be pointers.");
         }
@@ -70,7 +70,7 @@ pub fn callSystem(world: anytype, system: anytype) !void {
         world_pointers[i] = new_ptr;
     }
 
-    comptime const options = std.builtin.CallOptions{};
+    const options = std.builtin.CallOptions{};
     try @call(options, system, world_pointers);
 }
 
@@ -78,13 +78,13 @@ pub fn callSystem(world: anytype, system: anytype) !void {
 /// the type Target, if any.
 /// The structure should be a pointer to a struct.
 fn pointer_to_struct_type(comptime Target: type, structure: anytype) ?*Target {
-    comptime const ptr_info = @typeInfo(@TypeOf(structure));
+    //comptime const ptr_info = @typeInfo(@TypeOf(structure));
     //if (ptr_info != .Pointer) {
     //    @compileError("Expected a pointer to a struct.");
     //}
 
     //comptime const struct_info = @typeInfo(ptr_info.Pointer.child);
-    comptime const struct_info = @typeInfo(@TypeOf(structure.*));
+    const struct_info = @typeInfo(@TypeOf(structure.*));
     if (struct_info != .Struct) {
         @compileError("Expected a struct.");
     }
@@ -97,8 +97,8 @@ fn pointer_to_struct_type(comptime Target: type, structure: anytype) ?*Target {
     return null;
 }
 
-fn bench_system(a: *u32, b: *const i32) !void {}
-fn test_system(a: *u32, b: *const i32) !void {
+fn bench_system(_: *u32, _: *const i32) !void {}
+fn test_system(a: *u32, _: *const i32) !void {
     a.* = 5;
 }
 fn test_system2(a: *u32) !void {
@@ -107,7 +107,7 @@ fn test_system2(a: *u32) !void {
 
 fn TestGeneric(comptime T: type) type {
     return struct {
-        fn test_generic(a: *T) !void {}
+        fn test_generic(_: *T) !void {}
     };
 }
 
@@ -156,7 +156,7 @@ test "Bench medium system" {
 }
 
 test "Dispatcher run" {
-    if (std.builtin.single_threaded) return error.SkipZigTest;
+    if (@import("builtin").single_threaded) return error.SkipZigTest;
     if (!std.io.is_async) return error.SkipZigTest;
     const MyWorld = struct {
         test_a: u32 = 0,

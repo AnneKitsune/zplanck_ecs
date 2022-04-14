@@ -1,12 +1,13 @@
 const std = @import("std");
-const Entity = @import("./Entity.zig");
+const Entity = @import("./entity.zig").Entity;
 const ArrayList = std.ArrayList;
 const Allocator = std.mem.Allocator;
 const Bitset = std.bit_set.StaticBitSet(MAX_ENTITIES);
 
 // testing
-const Entities = @import("./Entities.zig");
-const benchmark = @import("benchmark");
+const Entities = @import("./entities.zig");
+const benchmark = @import("zig_benchmark");
+const builtin = @import("builtin");
 
 const MAX_ENTITIES = @import("./main.zig").MAX_ENTITIES;
 const expect = std.testing.expect;
@@ -23,7 +24,7 @@ pub fn Components(comptime T: type) type {
         const InnerType: type = T;
 
         /// Allocates a new Components(T) struct.
-        pub fn init(allocator: *Allocator) !@This() {
+        pub fn init(allocator: Allocator) !@This() {
             var comps = try ArrayList(?T).initCapacity(allocator, 64);
             errdefer comps.deinit();
             comps.appendNTimesAssumeCapacity(null, 64);
@@ -72,7 +73,7 @@ pub fn Components(comptime T: type) type {
         /// The entity argument must be a valid index.
         /// To ensure this, take it from an `Entity` using entity.index.
         pub fn get(self: *const @This(), entity: u32) ?*const T {
-            if (std.builtin.mode == .Debug or std.builtin.mode == .ReleaseSafe) {
+            if (builtin.mode == .Debug or builtin.mode == .ReleaseSafe) {
                 if (self.bitset.isSet(entity)) {
                     return &self.components.items[entity].?;
                 } else {
@@ -89,7 +90,7 @@ pub fn Components(comptime T: type) type {
         /// The entity argument must be a valid index.
         /// To ensure this, take it from an `Entity` using entity.index.
         pub fn getMut(self: *@This(), entity: u32) ?*T {
-            if (std.builtin.mode == .Debug or std.builtin.mode == .ReleaseSafe) {
+            if (builtin.mode == .Debug or builtin.mode == .ReleaseSafe) {
                 if (self.bitset.isSet(entity)) {
                     return &self.components.items[entity].?;
                 } else {

@@ -3,3 +3,4 @@ zig-out
 gyro.lock
 deps.zig
 .gyro/
+dependencies

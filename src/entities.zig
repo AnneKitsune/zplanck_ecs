@@ -3,13 +3,13 @@
 //! to remove components of deleted entities at the end of a game frame.
 
 const std = @import("std");
-const Entity = @import("./Entity.zig");
+const Entity = @import("./entity.zig").Entity;
 const ArrayList = std.ArrayList;
 const Allocator = std.mem.Allocator;
 const Bitset = std.bit_set.StaticBitSet(MAX_ENTITIES);
 const expect = std.testing.expect;
 
-const benchmark = @import("benchmark");
+const benchmark = @import("zig_benchmark");
 const Entities = @This();
 
 const MAX_ENTITIES = @import("./main.zig").MAX_ENTITIES;
@@ -25,7 +25,7 @@ has_deleted: bool = false,
 const InnerType: type = Entity;
 
 /// Allocates a new Entities struct.
-pub fn init(allocator: *Allocator) !@This() {
+pub fn init(allocator: Allocator) !@This() {
     var gen = try ArrayList(u32).initCapacity(allocator, MAX_ENTITIES);
     errdefer gen.deinit();
     gen.appendNTimesAssumeCapacity(0, MAX_ENTITIES);
@@ -54,7 +54,9 @@ pub fn create(this: *@This()) Entity {
         var check: u16 = 0;
         var found = false;
         while (!found) : (check += 1) {
-            comptime const overflow_check = std.builtin.mode == .Debug or std.builtin.mode == .ReleaseSafe;
+            const overflow_check = comptime blk: {
+                break :blk @import("builtin").mode == .Debug or @import("builtin").mode == .ReleaseSafe;
+            };
             if (overflow_check and check == MAX_ENTITIES) {
                 @panic("Max entity count reached!");
             }
@@ -206,7 +208,7 @@ test "Benchmark create Entities" {
 
             var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
             defer arena.deinit();
-            const alloc = &arena.allocator;
+            const alloc = arena.allocator();
 
             while (ctx.run()) {
                 var entities = Entities.init(alloc) catch unreachable;

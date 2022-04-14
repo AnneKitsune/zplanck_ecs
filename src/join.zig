@@ -1,11 +1,12 @@
 const std = @import("std");
 const Components = @import("components.zig").Components;
-const Entity = @import("Entity.zig");
-const Entities = @import("Entities.zig");
+const Entity = @import("entity.zig").Entity;
+const Entities = @import("entities.zig");
 const MAX_ENTITIES = @import("./main.zig").MAX_ENTITIES;
 const Bitset = std.bit_set.StaticBitSet(MAX_ENTITIES);
 
-const benchmark = @import("benchmark");
+const builtin = @import("builtin");
+const benchmark = @import("zig_benchmark");
 
 /// Creates an iterator over the values of the provided argument pointers tuple.
 /// The argument must be a tuple containing pointers (const or not) to a struct which
@@ -75,12 +76,12 @@ pub fn Iter(comptime input_types: type) type {
 /// internal types of those containers.
 /// .{*Entities, *Components(u32)} -> .{Entity, u32}
 fn extractInnerTypes(comptime args: type) type {
-    comptime const args_info = @typeInfo(args);
+    const args_info = @typeInfo(args);
     if (args_info != .Struct or !args_info.Struct.is_tuple) {
         @compileError("Argument must be a tuple.");
     }
 
-    comptime var types: [std.meta.fields(args).len]type = undefined;
+    var types: [std.meta.fields(args).len]type = undefined;
     inline for (std.meta.fields(args)) |arg, i| {
         const arg_info = @typeInfo(arg.field_type);
         if (arg_info != .Pointer) {
@@ -97,7 +98,7 @@ fn extractInnerTypes(comptime args: type) type {
 
         types[i] = getInnerType(child_info, arg_info, typename_len, typename);
     }
-    comptime const tuple = std.meta.Tuple(&types);
+    const tuple = std.meta.Tuple(&types);
     return tuple;
 }
 
@@ -109,7 +110,7 @@ fn getInnerType(
 ) type {
     inline for (child_info.Struct.decls) |decl| {
         if (std.mem.eql(u8, decl.name, "InnerType")) {
-            if (std.mem.eql(u8, typename, "Entities")) {
+            if (std.mem.eql(u8, typename, "entities")) {
                 return decl.data.Type;
             } else {
                 comptime var ret_type = std.builtin.TypeInfo{
@@ -121,6 +122,7 @@ fn getInnerType(
                         .child = decl.data.Type,
                         .is_allowzero = ptr_info.Pointer.is_allowzero,
                         .sentinel = ptr_info.Pointer.sentinel,
+                        .address_space = ptr_info.Pointer.address_space,
                         //.sentinel = ?decl.data.Type,
                     },
                 };
@@ -136,7 +138,7 @@ test "extract inner types" {
         const InnerType = u32;
     };
     const my_struct = MyStruct{};
-    const new_types = extractInnerTypes(@TypeOf(.{&my_struct}));
+    _ = extractInnerTypes(@TypeOf(.{&my_struct}));
 }
 
 test "Iter Entities" {
@@ -152,7 +154,7 @@ test "Iter Entities" {
 
     var count = @as(u32, 0);
     var iter = join(.{entities_ptr});
-    while (iter.next()) |e| {
+    while (iter.next()) |_| {
         count += 1;
     }
     try std.testing.expect(count == 4);
@@ -211,7 +213,7 @@ test "Benchmark Join" {
             const b_ptr: *const Components(B) = &b;
 
             while (ctx.run()) {
-                var iter = join(.{ &a, b_ptr });
+                _ = join(.{ &a, b_ptr });
             }
         }
     }.bench;
