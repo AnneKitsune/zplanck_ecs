@@ -89,22 +89,19 @@ fn extractInnerTypes(comptime args: type) type {
             @compileError("Elements inside of the tuple must be pointers.");
         }
         const child = arg_info.Pointer.child;
-        //const typename = @typeName(child);
-        //const typename_len = typename.len;
         const child_info = @typeInfo(child);
 
         if (child_info != .Struct) {
             @compileError("Elements pointed to inside of the tuple must be structs.");
         }
 
-        //types[i] = getInnerType(child_info, arg_info, typename_len, typename);
-        types[i] = getInnerType2(arg_info.Pointer.is_const, child);
+        types[i] = getInnerType(arg_info.Pointer.is_const, child);
     }
     const tuple = std.meta.Tuple(&types);
     return tuple;
 }
 
-fn getInnerType2(comptime is_const: bool, comptime ptr_child: type) type {
+fn getInnerType(comptime is_const: bool, comptime ptr_child: type) type {
     if (ptr_child == Entities) {
         return Entity;
     }
@@ -114,42 +111,6 @@ fn getInnerType2(comptime is_const: bool, comptime ptr_child: type) type {
     } else {
         return *ptr_child.InnerType;
     }
-}
-
-fn getInnerType(
-    comptime child_info: std.builtin.Type,
-    comptime ptr_info: std.builtin.Type,
-    comptime typename_len: u32,
-    comptime typename: *const [typename_len:0]u8,
-) type {
-    inline for (child_info.Struct.decls) |decl| {
-        if (std.mem.eql(u8, decl.name, "InnerType")) {
-            if (std.mem.eql(u8, typename, "entities")) {
-                return Entity;
-            } else {
-                if (ptr_info.Pointer.is_const) {
-                    return *const @Type(child_info).InnerType;
-                } else {
-                    return *@Type(child_info).InnerType;
-                }
-//                comptime const ret_type = std.builtin.Type{
-//                    .Pointer = std.builtin.Type.Pointer{
-//                        .size = .One,
-//                        .is_const = ptr_info.Pointer.is_const,
-//                        .is_volatile = ptr_info.Pointer.is_volatile,
-//                        //.alignment = @alignOf(decl.data.Type),
-//                        .child = decl.data.Type,
-//                        .is_allowzero = ptr_info.Pointer.is_allowzero,
-//                        .sentinel = ptr_info.Pointer.sentinel,
-//                        .address_space = ptr_info.Pointer.address_space,
-//                        //.sentinel = ?decl.data.Type,
-//                    },
-//                };
-//                return @Type(ret_type);
-            }
-        }
-    }
-    @compileError("Failed to find InnerType: type inside of the provided type.");
 }
 
 test "extract inner types" {
