@@ -21,7 +21,7 @@ pub fn Components(comptime T: type) type {
         components: ArrayList(T),
         next_id: u32 = 0,
 
-        const InnerType: type = T;
+        pub const InnerType: type = T;
 
         /// Allocates a new Components(T) struct.
         pub fn init(allocator: Allocator) !@This() {

@@ -17,7 +17,8 @@ pub fn build(b: *Builder) void {
     };
     for (tests) |name| {
         var t = b.addTest(name);
-        t.test_evented_io = true;
+        // Disabled in stage2
+        //t.test_evented_io = true;
         t.setBuildMode(mode);
         @import("deps.zig").addAll(t);
         test_step.dependOn(&t.step);

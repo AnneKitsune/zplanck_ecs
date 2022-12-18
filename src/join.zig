@@ -53,8 +53,9 @@ pub fn Iter(comptime input_types: type) type {
             if (this.current_position < this.next_id) {
                 var ret: extractInnerTypes(input_types) = undefined;
 
-                inline for (std.meta.fields(@TypeOf(this.inputs))) |field| {
-                    if (@typeInfo(field.field_type).Pointer.is_const) {
+                inline for (@typeInfo(input_types).Struct.fields) |field| {
+                    const info = @typeInfo(field.field_type);
+                    if (info.Pointer.is_const) {
                         @field(ret, field.name) = @field(this.inputs, field.name).get(this.current_position) orelse @panic("Iterated over a storage which doesn't have the requested index. The calculated iteration bitset must be wrong.");
                     } else {
                         @field(ret, field.name) = @field(this.inputs, field.name).getMut(this.current_position) orelse @panic("Iterated over a storage which doesn't have the requested index. The calculated iteration bitset must be wrong.");
@@ -88,45 +89,64 @@ fn extractInnerTypes(comptime args: type) type {
             @compileError("Elements inside of the tuple must be pointers.");
         }
         const child = arg_info.Pointer.child;
-        const typename = @typeName(child);
-        const typename_len = typename.len;
+        //const typename = @typeName(child);
+        //const typename_len = typename.len;
         const child_info = @typeInfo(child);
 
         if (child_info != .Struct) {
             @compileError("Elements pointed to inside of the tuple must be structs.");
         }
 
-        types[i] = getInnerType(child_info, arg_info, typename_len, typename);
+        //types[i] = getInnerType(child_info, arg_info, typename_len, typename);
+        types[i] = getInnerType2(arg_info.Pointer.is_const, child);
     }
     const tuple = std.meta.Tuple(&types);
     return tuple;
 }
 
+fn getInnerType2(comptime is_const: bool, comptime ptr_child: type) type {
+    const child_type_name = @typeName(ptr_child);
+    if (std.mem.eql(u8, child_type_name, "entities")) {
+        return Entity;
+    }
+
+    if (is_const) {
+        return *const ptr_child.InnerType;
+    } else {
+        return *ptr_child.InnerType;
+    }
+}
+
 fn getInnerType(
-    comptime child_info: std.builtin.TypeInfo,
-    comptime ptr_info: std.builtin.TypeInfo,
+    comptime child_info: std.builtin.Type,
+    comptime ptr_info: std.builtin.Type,
     comptime typename_len: u32,
     comptime typename: *const [typename_len:0]u8,
 ) type {
     inline for (child_info.Struct.decls) |decl| {
         if (std.mem.eql(u8, decl.name, "InnerType")) {
             if (std.mem.eql(u8, typename, "entities")) {
-                return decl.data.Type;
+                return Entity;
             } else {
-                comptime var ret_type = std.builtin.TypeInfo{
-                    .Pointer = std.builtin.TypeInfo.Pointer{
-                        .size = .One,
-                        .is_const = ptr_info.Pointer.is_const,
-                        .is_volatile = ptr_info.Pointer.is_volatile,
-                        .alignment = @alignOf(decl.data.Type),
-                        .child = decl.data.Type,
-                        .is_allowzero = ptr_info.Pointer.is_allowzero,
-                        .sentinel = ptr_info.Pointer.sentinel,
-                        .address_space = ptr_info.Pointer.address_space,
-                        //.sentinel = ?decl.data.Type,
-                    },
-                };
-                return @Type(ret_type);
+                if (ptr_info.Pointer.is_const) {
+                    return *const @Type(child_info).InnerType;
+                } else {
+                    return *@Type(child_info).InnerType;
+                }
+//                comptime const ret_type = std.builtin.Type{
+//                    .Pointer = std.builtin.Type.Pointer{
+//                        .size = .One,
+//                        .is_const = ptr_info.Pointer.is_const,
+//                        .is_volatile = ptr_info.Pointer.is_volatile,
+//                        //.alignment = @alignOf(decl.data.Type),
+//                        .child = decl.data.Type,
+//                        .is_allowzero = ptr_info.Pointer.is_allowzero,
+//                        .sentinel = ptr_info.Pointer.sentinel,
+//                        .address_space = ptr_info.Pointer.address_space,
+//                        //.sentinel = ?decl.data.Type,
+//                    },
+//                };
+//                return @Type(ret_type);
             }
         }
     }

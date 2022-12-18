@@ -70,8 +70,7 @@ pub fn callSystem(world: anytype, system: anytype) !void {
         world_pointers[i] = new_ptr;
     }
 
-    const options = std.builtin.CallOptions{};
-    try @call(options, system, world_pointers);
+    try @call(.auto, system, world_pointers);
 }
 
 /// Returns a pointer to the first field of the provided runtime structure that has
