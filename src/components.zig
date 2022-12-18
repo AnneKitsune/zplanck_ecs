@@ -5,7 +5,7 @@ const Allocator = std.mem.Allocator;
 const Bitset = std.bit_set.StaticBitSet(MAX_ENTITIES);
 
 // testing
-const Entities = @import("./entities.zig");
+const Entities = @import("./entities.zig").Entities;
 const benchmark = @import("zig_benchmark");
 const builtin = @import("builtin");
 

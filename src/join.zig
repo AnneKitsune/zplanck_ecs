@@ -1,7 +1,7 @@
 const std = @import("std");
 const Components = @import("components.zig").Components;
 const Entity = @import("entity.zig").Entity;
-const Entities = @import("entities.zig");
+const Entities = @import("entities.zig").Entities;
 const MAX_ENTITIES = @import("./main.zig").MAX_ENTITIES;
 const Bitset = std.bit_set.StaticBitSet(MAX_ENTITIES);
 
@@ -105,8 +105,7 @@ fn extractInnerTypes(comptime args: type) type {
 }
 
 fn getInnerType2(comptime is_const: bool, comptime ptr_child: type) type {
-    const child_type_name = @typeName(ptr_child);
-    if (std.mem.eql(u8, child_type_name, "entities")) {
+    if (ptr_child == Entities) {
         return Entity;
     }
 
